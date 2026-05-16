@@ -156,6 +156,8 @@ export default function App() {
     { role: 'bot', content: 'Direct Linkage Channel established. This is a secure channel between Programme Admin and Founder Hub.' }
   ]);
   const [activeAgentTab, setActiveAgentTab] = useState<'AI_AGENT' | 'DIRECT_LINKAGE'>('AI_AGENT');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [nodeChats, setNodeChats] = useState<Record<string, Message[]>>({});
   const [inputMessage, setInputMessage] = useState('');
   const [nodeMatches, setNodeMatches] = useState<any[]>([]);
 
@@ -183,7 +185,7 @@ export default function App() {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }, 100);
     }
-  }, [agentChat, adminFounderChat, activeAgentTab, activeScreen]);
+  }, [agentChat, adminFounderChat, nodeChats, selectedNodeId, activeAgentTab, activeScreen]);
 
   const [networkFilter, setNetworkFilter] = useState<string>('ALL');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -250,18 +252,38 @@ export default function App() {
         setIsLoading(false);
       }
     } else {
-      setAdminFounderChat(prev => [...prev, newMessage]);
-      setInputMessage('');
-      
-      // Simulate response for Direct Linkage
-      setTimeout(() => {
-        const responderName = role === 'ADMIN' ? 'Founder Response' : 'Admin Response';
-        const botResponse: Message = { 
-          role: 'bot', 
-          content: `Acknowledged. Relaying your inquiry to ${role === 'ADMIN' ? 'the Founder Hub' : 'Programme Administration'}. Expect a resolution update shortly.` 
-        };
-        setAdminFounderChat(prev => [...prev, botResponse]);
-      }, 1200);
+      if (selectedNodeId) {
+        setNodeChats(prev => ({
+          ...prev,
+          [selectedNodeId]: [...(prev[selectedNodeId] || []), newMessage]
+        }));
+        setInputMessage('');
+        
+        setTimeout(() => {
+          const selectedNode = [...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].find(n => n.id === selectedNodeId);
+          const botResponse: Message = { 
+            role: 'bot', 
+            content: `Hello! This is ${selectedNode?.name || 'an Ecosystem Node'}. I've received your message and will review it to see how we can best collaborate within the Syncra ecosystem.` 
+          };
+          setNodeChats(prev => ({
+            ...prev,
+            [selectedNodeId]: [...(prev[selectedNodeId] || []), botResponse]
+          }));
+        }, 1200);
+      } else {
+        setAdminFounderChat(prev => [...prev, newMessage]);
+        setInputMessage('');
+        
+        // Simulate response for Direct Linkage
+        setTimeout(() => {
+          const responderName = role === 'ADMIN' ? 'Founder Response' : 'Admin Response';
+          const botResponse: Message = { 
+            role: 'bot', 
+            content: `Acknowledged. Relaying your inquiry to ${role === 'ADMIN' ? 'the Founder Hub' : 'Programme Administration'}. Expect a resolution update shortly.` 
+          };
+          setAdminFounderChat(prev => [...prev, botResponse]);
+        }, 1200);
+      }
     }
   };
 
@@ -681,7 +703,7 @@ export default function App() {
           )}
           <NavItem icon={<Search size={24} />} active={activeScreen === 'DISCOVERY'} onClick={() => setActiveScreen('DISCOVERY')} label="Library" />
           <NavItem icon={<Handshake size={24} />} active={activeScreen === 'NETWORK'} onClick={() => setActiveScreen('NETWORK')} label="Network" />
-          <NavItem icon={<Bot size={24} />} active={activeScreen === 'AGENT'} onClick={() => setActiveScreen('AGENT')} label="Ecosystem AI" />
+          <NavItem icon={<Bot size={24} />} active={activeScreen === 'AGENT'} onClick={() => setActiveScreen('AGENT')} label="Chat" />
         </div>
 
         <div className="mt-auto pb-4">
@@ -859,8 +881,8 @@ export default function App() {
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8">
                 <div>
                   <Badge className="bg-brand-dark text-brand-yellow mb-4 px-4 py-1.5 rounded-full font-bold uppercase tracking-widest text-[10px]">Fleet Coordination</Badge>
-                  <h1 className="text-5xl font-bold tracking-tighter mb-4 leading-tight">Service <span className="text-brand-yellow italic font-medium">Provider</span> Activity.</h1>
-                  <p className="text-brand-dark/40 text-xl font-medium max-w-2xl">Real-time monitoring of vetted ecosystem specialists and their current engagement across stakeholders.</p>
+                  <h1 className="text-5xl font-bold tracking-tighter mb-4 leading-tight">Ecosystem <span className="text-brand-yellow italic font-medium">Activity</span> Feed.</h1>
+                  <p className="text-brand-dark/40 text-xl font-medium max-w-2xl">Real-time monitoring of vetted ecosystem specialists and strategic partners across stakeholders.</p>
                 </div>
                 <div className="flex gap-4">
                    <Card className="bg-white p-6 rounded-2xl shadow-sm border border-brand-bg flex items-center gap-4">
@@ -892,27 +914,31 @@ export default function App() {
                     </h3>
                     <div className="space-y-4">
                        {[
-                         { sp: 'Scale-up Specialists', action: 'completed', target: 'AgroFlow Tech', time: '12m ago', type: 'IP Filings' },
-                         { sp: 'Ops Architects', action: 'initiated', target: 'FinEdge Solutions', time: '45m ago', type: 'Cloud Migration' },
-                         { sp: 'Legal Guardians', action: 'flagged', target: 'BioPulse', time: '2h ago', type: 'Compliance Review', status: 'CRITICAL' },
-                         { sp: 'Growth Hackers', action: 'assigned', target: 'MarketMatrix', time: '5h ago', type: 'GTM Strategy' }
+                         { sp: 'Scale-up Specialists', action: 'completed', target: 'AgroFlow Tech', time: '12m ago', type: 'IP Filings', category: 'SERVICE_PROVIDER' },
+                         { sp: 'Venture Capital X', action: 'vetted', target: 'Solaris energy', time: '28m ago', type: 'Series A Bridge', category: 'PARTNER' },
+                         { sp: 'Ops Architects', action: 'initiated', target: 'FinEdge Solutions', time: '45m ago', type: 'Cloud Migration', category: 'SERVICE_PROVIDER' },
+                         { sp: 'Global Logistics Hub', action: 'linked', target: 'GreenMart', time: '1h ago', type: 'Supply Chain Sync', category: 'PARTNER' },
+                         { sp: 'Legal Guardians', action: 'flagged', target: 'BioPulse', time: '2h ago', type: 'Compliance Review', status: 'CRITICAL', category: 'SERVICE_PROVIDER' },
+                         { sp: 'Cloud Infrastructure Ltd', action: 'provided', target: 'DataFlow', time: '4h ago', type: 'Instance Setup', category: 'PARTNER' },
+                         { sp: 'Growth Hackers', action: 'assigned', target: 'MarketMatrix', time: '5h ago', type: 'GTM Strategy', category: 'SERVICE_PROVIDER' }
                        ].map((activity, i) => (
                          <div key={i} className="group bg-white p-6 rounded-3xl border border-brand-bg flex items-center gap-6 hover:shadow-md transition-all">
                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                               activity.action === 'completed' ? 'bg-green-50 text-green-600' :
-                               activity.action === 'initiated' ? 'bg-blue-50 text-blue-600' :
                                activity.action === 'flagged' ? 'bg-red-50 text-red-600' :
+                               activity.category === 'PARTNER' ? 'bg-blue-50 text-blue-600' :
                                'bg-brand-yellow/10 text-brand-yellow'
                             }`}>
-                               {activity.action === 'completed' ? <CheckCircle2 size={24} /> : 
-                                activity.action === 'initiated' ? <Layers size={24} /> :
-                                activity.action === 'flagged' ? <Shield size={24} /> :
-                                <Handshake size={24} />}
+                               {activity.action === 'flagged' ? <Shield size={24} /> : 
+                               activity.category === 'PARTNER' ? <Handshake size={24} /> :
+                               <Wrench size={24} />}
                             </div>
                             <div className="flex-1">
                                <div className="flex justify-between items-start">
                                   <div>
-                                     <p className="font-bold text-lg">{activity.sp}</p>
+                                     <div className="flex items-center gap-2 mb-1">
+                                        <p className="font-bold text-lg">{activity.sp}</p>
+                                        <Badge className={`${activity.category === 'PARTNER' ? 'bg-blue-500' : 'bg-brand-dark'} text-white text-[8px] px-2 py-0.5 rounded-full border-none`}>{activity.category.replace('_', ' ')}</Badge>
+                                     </div>
                                      <p className="text-sm text-brand-dark/50">
                                         {activity.action} <span className="text-brand-dark font-bold">{activity.type}</span> for {activity.target}
                                      </p>
@@ -941,18 +967,21 @@ export default function App() {
 
                  <div className="space-y-8">
                     <h3 className="text-xs font-bold text-brand-dark/40 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                       Active Fleet Status
+                       Active Node Status
                     </h3>
                     <div className="grid grid-cols-1 gap-6">
-                      {ecosystem.serviceProviders.map(sp => (
+                      {[...ecosystem.partners, ...ecosystem.serviceProviders].map(sp => (
                         <Card key={sp.id} className="rounded-[2rem] border-none bg-white p-8 shadow-sm group hover:shadow-lg transition-all border border-transparent hover:border-brand-bg">
                           <div className="flex justify-between items-start mb-6">
-                            <div className="w-14 h-14 bg-brand-bg rounded-2xl flex items-center justify-center group-hover:bg-brand-dark group-hover:text-brand-yellow transition-colors">
-                              <Wrench size={24} />
+                            <div className={`w-14 h-14 bg-brand-bg rounded-2xl flex items-center justify-center group-hover:bg-brand-dark group-hover:text-brand-yellow transition-colors ${sp.type === 'PARTNER' ? 'text-blue-500' : 'text-brand-dark'}`}>
+                              {sp.type === 'PARTNER' ? <Handshake size={24} /> : <Wrench size={24} />}
                             </div>
-                            <Badge className={`${sp.status === 'ACTIVE' ? 'bg-green-50 text-green-600' : 'bg-brand-dark/5 text-brand-dark/30'} border-none text-[9px] uppercase font-bold tracking-widest px-3 py-1 rounded-full`}>
-                              {sp.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${sp.type === 'PARTNER' ? 'bg-blue-50 text-blue-600' : 'bg-brand-dark/10 text-brand-dark/60'} border-none text-[8px] uppercase font-black px-2 py-0.5 rounded-full`}>{sp.type}</Badge>
+                              <Badge className={`${sp.status === 'ACTIVE' ? 'bg-green-50 text-green-600' : 'bg-brand-dark/5 text-brand-dark/30'} border-none text-[9px] uppercase font-bold tracking-widest px-3 py-1 rounded-full`}>
+                                {sp.status}
+                              </Badge>
+                            </div>
                           </div>
                           
                           <h3 className="text-2xl font-bold mb-1 tracking-tight">{sp.name}</h3>
@@ -1366,9 +1395,9 @@ export default function App() {
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0 }}
-               className="max-w-7xl mx-auto h-[calc(100vh-64px)] flex flex-col px-4 w-full"
+               className="max-w-7xl mx-auto h-[calc(100vh-140px)] flex flex-col px-4 w-full"
             >
-               <div className="text-center mb-6 pt-2 flex flex-col items-center shrink-0">
+               <div className="text-center mb-4 pt-2 flex flex-col items-center shrink-0">
                   <motion.div 
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -1378,11 +1407,14 @@ export default function App() {
                     <SyncraLogo size={36} />
                     <div className="absolute -inset-1.5 bg-brand-yellow/5 rounded-[1.8rem] animate-pulse -z-10" />
                   </motion.div>
-                  <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-brand-dark leading-tight">Syncra Nexus</h1>
+                  <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-brand-dark leading-tight">Syncra Connect</h1>
                   
-                  <div className="flex bg-brand-bg/50 p-1 rounded-2xl mt-2 border border-brand-bg">
+                  <div className="flex bg-brand-bg/50 p-1 rounded-2xl mt-2 border border-brand-bg shrink-0">
                     <button 
-                      onClick={() => setActiveAgentTab('AI_AGENT')}
+                      onClick={() => {
+                        setActiveAgentTab('AI_AGENT');
+                        setSelectedNodeId(null);
+                      }}
                       className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${activeAgentTab === 'AI_AGENT' ? 'bg-brand-dark text-brand-yellow shadow-lg' : 'text-brand-dark/40 hover:text-brand-dark'}`}
                     >
                       <Sparkles size={12} />
@@ -1393,147 +1425,214 @@ export default function App() {
                       className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${activeAgentTab === 'DIRECT_LINKAGE' ? 'bg-brand-dark text-brand-yellow shadow-lg' : 'text-brand-dark/40 hover:text-brand-dark'}`}
                     >
                       <MessageSquare size={12} />
-                      Ecosystem Connect
+                      Syncra Chat
                     </button>
                   </div>
                </div>
 
-               <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl shadow-brand-dark/5 flex flex-col overflow-hidden mb-6 border border-brand-bg min-h-0">
+               <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl shadow-brand-dark/5 flex flex-col overflow-hidden mb-2 border border-brand-bg min-h-0">
                   <ScrollArea className="flex-1 scroll-smooth">
-                    <div className="max-w-5xl mx-auto p-10">
-                       {(() => {
-                         const currentChat = activeAgentTab === 'AI_AGENT' ? agentChat : adminFounderChat;
-                         
-                         if (currentChat.length === 0 && activeAgentTab === 'AI_AGENT') {
-                           return (
-                             <motion.div 
-                               initial={{ opacity: 0, y: 15 }}
-                               animate={{ opacity: 1, y: 0 }}
-                               transition={{ delay: 0.3 }}
-                               className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 my-auto"
-                             >
-                               <PromptSuggestion text="Verify latest linkages" icon={<CheckCircle2 size={18}/>} />
-                               <PromptSuggestion text="Match Alex with a venture" icon={<Handshake size={18}/>} />
-                               <PromptSuggestion text="Show program velocity" icon={<BarChart3 size={18}/>} />
-                               <PromptSuggestion text="Analyze regulatory trends" icon={<SyncraLogo size={20}/>} />
-                             </motion.div>
-                           );
-                         }
+                    <div className="max-w-6xl mx-auto p-6 md:p-10">
+                        {(() => {
+                          const isDirectLinkage = activeAgentTab === 'DIRECT_LINKAGE';
+                          const currentChat = activeAgentTab === 'AI_AGENT' 
+                            ? agentChat 
+                            : (selectedNodeId ? (nodeChats[selectedNodeId] || []) : []);
+                          
+                          const selectedNode = isDirectLinkage && selectedNodeId 
+                            ? [...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].find(n => n.id === selectedNodeId)
+                            : null;
 
-                         return (
-                           <div className="space-y-6 py-2">
-                             {activeAgentTab === 'DIRECT_LINKAGE' && (
-                               <div className="flex flex-col gap-5 mb-10 p-5 bg-[#F8F9FA] rounded-[2rem] border border-brand-bg">
-                                 <div className="flex items-center justify-between px-2">
-                                   <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 bg-brand-dark rounded-xl flex items-center justify-center text-brand-yellow">
-                                        <Users size={20} />
-                                      </div>
-                                      <div>
-                                        <h3 className="font-bold text-sm tracking-tight">Active Linkage Hub</h3>
-                                        <p className="text-[10px] font-medium text-brand-dark/40 uppercase tracking-widest">Connect with any ecosystem node</p>
-                                      </div>
-                                   </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                      <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Network Live</span>
-                                    </div>
-                                 </div>
-                                 
-                                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none px-2">
-                                    {[...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].map(node => (
-                                      <button 
-                                        key={node.id}
-                                        className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-brand-bg hover:border-brand-yellow active:scale-95 transition-all group shadow-sm"
-                                      >
-                                        <Avatar className="w-5 h-5">
-                                          <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
-                                        </Avatar>
-                                        <span className="text-[10px] font-bold text-brand-dark/60 group-hover:text-brand-dark whitespace-nowrap">{node.name}</span>
-                                      </button>
-                                    ))}
-                                 </div>
-                               </div>
-                             )}
-                             {currentChat.map((msg, i) => {
-                               const isBot = msg.role === 'bot';
-                               let sender = '';
-                               
-                               if (activeAgentTab === 'AI_AGENT') {
-                                 sender = isBot ? 'Syncra IQ Core' : 'Authorized Admin';
-                               } else {
-                                 sender = isBot ? 'Ecosystem Node' : (role === 'ADMIN' ? 'Syncra HQ' : 'Founder Hub');
-                               }
+                          if (activeAgentTab === 'AI_AGENT' && agentChat.length === 0) {
+                            return (
+                              <motion.div 
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 my-auto"
+                              >
+                                <PromptSuggestion text="Verify latest linkages" icon={<CheckCircle2 size={18}/>} />
+                                <PromptSuggestion text="Match Alex with a venture" icon={<Handshake size={18}/>} />
+                                <PromptSuggestion text="Show program velocity" icon={<BarChart3 size={18}/>} />
+                                <PromptSuggestion text="Analyze regulatory trends" icon={<SyncraLogo size={20}/>} />
+                              </motion.div>
+                            );
+                          }
 
-                               return (
-                                 <motion.div 
-                                   initial={{ opacity: 0, x: isBot ? -15 : 15 }}
-                                   animate={{ opacity: 1, x: 0 }}
-                                   key={i} 
-                                   className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} gap-2`}
-                                 >
-                                    <div className="flex items-center gap-2 opacity-30 uppercase font-bold text-[9px] tracking-[0.2em] px-3">
-                                       {sender}
+                          if (isDirectLinkage && !selectedNodeId) {
+                            return (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col items-center justify-center min-h-[400px] text-center px-4"
+                              >
+                                <div className="w-20 h-20 bg-brand-bg rounded-[2rem] flex items-center justify-center text-brand-dark/20 mb-8 shadow-inner">
+                                  <Users size={32} />
+                                </div>
+                                <h2 className="text-2xl font-bold mb-4 tracking-tight">Ecosystem Linkage Hub</h2>
+                                <p className="text-sm text-brand-dark/40 mb-10 max-w-sm font-medium">Select an authorized ecosystem node to initiate a secure direct linkage channel.</p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-3xl">
+                                  {[...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].map(node => (
+                                    <button 
+                                      key={node.id}
+                                      onClick={() => setSelectedNodeId(node.id)}
+                                      className="flex flex-col items-center p-6 bg-white rounded-[2rem] border border-brand-bg hover:border-brand-yellow hover:shadow-xl hover:-translate-y-1 transition-all group shadow-sm"
+                                    >
+                                      <Avatar className="w-16 h-16 mb-4 border-2 border-transparent group-hover:border-brand-yellow transition-all">
+                                        <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
+                                      </Avatar>
+                                      <span className="text-xs font-bold text-brand-dark group-hover:text-brand-dark truncate w-full text-center">{node.name}</span>
+                                      <span className="text-[10px] font-bold text-brand-dark/20 uppercase tracking-widest mt-1">Verified Node</span>
+                                    </button>
+                                  ))}
+                                  
+                                  <button 
+                                    onClick={() => setSelectedNodeId('ADMIN_HQ')}
+                                    className="flex flex-col items-center p-6 bg-brand-dark rounded-[2rem] border border-brand-dark hover:shadow-xl hover:-translate-y-1 transition-all group shadow-sm text-white"
+                                  >
+                                    <div className="w-16 h-16 mb-4 rounded-full bg-brand-yellow flex items-center justify-center text-brand-dark">
+                                      <Shield size={28} />
                                     </div>
-                                    <div className={`p-5 rounded-[1.8rem] max-w-[85%] shadow-sm ${isBot ? 'bg-brand-bg text-brand-dark border border-brand-dark/5' : 'bg-brand-dark text-white'}`}>
-                                       <p className="text-sm leading-relaxed font-bold tracking-tight">{msg.content}</p>
+                                    <span className="text-xs font-bold truncate w-full text-center">Syncra HQ</span>
+                                    <span className="text-[10px] font-bold text-brand-yellow uppercase tracking-widest mt-1">Admin Channel</span>
+                                  </button>
+                                </div>
+                              </motion.div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-6 py-2">
+                              {isDirectLinkage && selectedNodeId && (
+                                <div className="flex items-center justify-between mb-8 p-5 bg-brand-bg/50 rounded-[2rem] border border-brand-bg">
+                                  <div className="flex items-center gap-4">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => setSelectedNodeId(null)}
+                                      className="h-10 w-10 p-0 rounded-full hover:bg-white transition-all hover:scale-110"
+                                    >
+                                      <ChevronLeft size={20} />
+                                    </Button>
+                                    <Avatar className="w-12 h-12 border-2 border-brand-yellow shadow-sm">
+                                      <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${selectedNodeId}`} />
+                                      <AvatarFallback>{selectedNodeId === 'ADMIN_HQ' ? 'HQ' : '?'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <h3 className="font-bold text-base leading-tight">
+                                        {selectedNodeId === 'ADMIN_HQ' ? 'Syncra Admin HQ' : (selectedNode?.name || 'Ecosystem Node')}
+                                      </h3>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                        <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Connection Live</p>
+                                      </div>
                                     </div>
-                                 </motion.div>
-                               );
-                             })}
-                             {isLoading && activeAgentTab === 'AI_AGENT' && (
-                               <div className="flex gap-1.5 p-5 bg-brand-bg rounded-[1.5rem] w-20 justify-center shadow-inner mt-4">
-                                 <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
-                                 <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
-                                 <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })()}
+                                  </div>
+                                  <Badge className="bg-brand-dark text-white rounded-full px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest border-none">LINK-{selectedNodeId.slice(0, 4).toUpperCase()}</Badge>
+                                </div>
+                              )}
+
+                              {currentChat.length === 0 && isDirectLinkage && selectedNodeId && (
+                                <motion.div 
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="py-20 text-center"
+                                >
+                                  <p className="text-xs font-bold text-brand-dark/20 uppercase tracking-[0.2em]">Start a secure conversation with {selectedNodeId === 'ADMIN_HQ' ? 'HQ' : (selectedNode?.name || 'this node')}</p>
+                                </motion.div>
+                              )}
+
+                              {(selectedNodeId === 'ADMIN_HQ' ? adminFounderChat : currentChat).map((msg, i) => {
+                                const isBot = msg.role === 'bot';
+                                let sender = '';
+                                
+                                if (activeAgentTab === 'AI_AGENT') {
+                                  sender = isBot ? 'Syncra IQ Core' : 'Authorized Admin';
+                                } else {
+                                  if (selectedNodeId === 'ADMIN_HQ') {
+                                    sender = isBot ? 'Programme HQ' : 'Me';
+                                  } else {
+                                    sender = isBot ? selectedNode?.name || 'Ecosystem Node' : 'Me';
+                                  }
+                                }
+
+                                return (
+                                  <motion.div 
+                                    initial={{ opacity: 0, x: isBot ? -15 : 15 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    key={i} 
+                                    className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} gap-2`}
+                                  >
+                                     <div className="flex items-center gap-2 opacity-30 uppercase font-bold text-[9px] tracking-[0.2em] px-3">
+                                        {sender}
+                                     </div>
+                                     <div className={`p-5 rounded-[1.8rem] max-w-[85%] shadow-sm ${isBot ? 'bg-brand-bg text-brand-dark border border-brand-dark/5' : 'bg-brand-dark text-white shadow-xl shadow-brand-dark/10'}`}>
+                                        <p className="text-sm leading-relaxed font-bold tracking-tight">{msg.content}</p>
+                                     </div>
+                                  </motion.div>
+                                );
+                              })}
+                              {isLoading && activeAgentTab === 'AI_AGENT' && (
+                                <div className="flex gap-1.5 p-5 bg-brand-bg rounded-[1.5rem] w-20 justify-center shadow-inner mt-4">
+                                  <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
+                                  <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
+                                  <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-brand-dark" />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                        <div ref={scrollRef} className="h-4" />
                     </div>
                   </ScrollArea>
 
-                  <div className="p-8 border-t border-brand-bg bg-white shadow-[0_-5px_30px_-15px_rgba(0,0,0,0.03)]">
-                    <div className="relative max-w-4xl mx-auto">
-                      {nodeMatches.length > 0 && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="absolute bottom-full left-0 mb-4 bg-white border border-brand-bg rounded-2xl shadow-2xl p-2 flex flex-col w-64 z-[100]"
+                  <div className="p-6 md:p-10 border-t border-brand-bg bg-white shadow-[0_-10px_40px_-20px_rgba(0,0,0,0.06)] shrink-0">
+                    <div className="relative max-w-6xl mx-auto">
+                      <AnimatePresence>
+                        {nodeMatches.length > 0 && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-0 mb-6 bg-white border border-brand-bg rounded-[2rem] shadow-2xl p-3 flex flex-col w-72 z-[100] backdrop-blur-xl bg-white/90"
+                          >
+                            <p className="text-[9px] font-bold text-brand-dark/30 uppercase tracking-[0.2em] px-4 py-3 border-b border-brand-bg mb-2">Ecosystem Discovery</p>
+                            {nodeMatches.map(node => (
+                              <button 
+                                key={node.id}
+                                onClick={() => selectNodeMatch(node.name)}
+                                className="flex items-center gap-4 px-4 py-3 hover:bg-brand-bg rounded-2xl transition-all text-left group"
+                              >
+                                <Avatar className="w-10 h-10 border border-brand-bg shadow-sm group-hover:border-brand-yellow transition-all">
+                                  <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
+                                </Avatar>
+                                <div>
+                                  <p className="text-xs font-bold text-brand-dark group-hover:text-brand-dark transition-colors">{node.name}</p>
+                                  <p className="text-[9px] font-bold text-brand-dark/30 uppercase tracking-tighter">Verified Node</p>
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <div className="relative group">
+                        <Input 
+                          placeholder={activeAgentTab === 'AI_AGENT' ? "Inquire with Syncra Intelligence..." : (selectedNodeId ? `Secure message to ${selectedNodeId === 'ADMIN_HQ' ? 'Syncra Admin HQ' : ([...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].find(n => n.id === selectedNodeId)?.name)}...` : "Select a contact above to message...")}
+                          disabled={activeAgentTab === 'DIRECT_LINKAGE' && !selectedNodeId}
+                          className="pr-20 h-16 md:h-20 rounded-[2rem] md:rounded-[2.5rem] bg-brand-bg/40 border-none px-8 md:px-10 text-sm md:text-lg font-bold tracking-tight shadow-inner placeholder:text-brand-dark/20 focus-visible:ring-brand-yellow/30 focus-visible:bg-white transition-all disabled:opacity-20"
+                          value={inputMessage}
+                          onChange={(e) => handleInputChange(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        />
+                        <Button 
+                           className="absolute right-3 top-3 h-10 w-10 md:h-14 md:w-14 p-0 rounded-[1.2rem] md:rounded-[1.8rem] bg-brand-dark text-brand-yellow hover:scale-105 active:scale-95 transition-all shadow-xl shadow-brand-dark/20 disabled:hidden"
+                           onClick={() => handleSendMessage()}
+                           disabled={!inputMessage.trim() || (activeAgentTab === 'DIRECT_LINKAGE' && !selectedNodeId)}
                         >
-                          <p className="text-[9px] font-bold text-brand-dark/30 uppercase tracking-[0.2em] px-3 py-2 border-b border-brand-bg mb-1">Ecosystem Discovery</p>
-                          {nodeMatches.map(node => (
-                            <button 
-                              key={node.id}
-                              onClick={() => selectNodeMatch(node.name)}
-                              className="flex items-center gap-3 px-3 py-2.5 hover:bg-brand-bg rounded-xl transition-all text-left group"
-                            >
-                              <Avatar className="w-8 h-8 border border-brand-bg">
-                                <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
-                              </Avatar>
-                              <div>
-                                <p className="text-xs font-bold text-brand-dark group-hover:text-brand-yellow transition-colors">{node.name}</p>
-                                <p className="text-[9px] font-medium text-brand-dark/40 uppercase tracking-tighter">Verified Node</p>
-                              </div>
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                      <Input 
-                        placeholder="Inquire with ecosystem IQ..." 
-                        className="pr-16 h-16 rounded-[1.8rem] bg-brand-bg/40 border-none px-8 text-base font-bold tracking-tight shadow-inner placeholder:text-brand-dark/20 focus-visible:ring-brand-yellow/20"
-                        value={inputMessage}
-                        onChange={(e) => handleInputChange(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                      />
-                      <Button 
-                         className="absolute right-2 top-2 h-10 w-10 p-0 rounded-full bg-brand-dark text-brand-yellow hover:scale-105 active:scale-95 transition-all shadow-lg"
-                         onClick={() => handleSendMessage()}
-                      >
-                         <ChevronRight size={20} />
-                      </Button>
+                           <ChevronRight size={24} strokeWidth={3} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                </div>
@@ -1746,7 +1845,7 @@ function FlippableMemberCard({ member, onCompanyClick }: { member: Member; onCom
 
               <div className="mt-auto pt-6 border-t border-white/10">
                 <Button className="w-full bg-white text-[#141414] rounded-xl text-xs font-mono uppercase tracking-widest h-10 hover:bg-gray-200">
-                  Request Connection
+                  View More
                 </Button>
               </div>
             </div>
