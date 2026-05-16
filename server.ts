@@ -272,21 +272,48 @@ async function startServer() {
 
   const proposals = [
     {
-      id: "prop_1",
-      name: "Venture Ready Phase 2",
-      suggestedMentors: ["m1", "m2"],
-      suggestedCompanies: ["c2", "c3"],
+      id: "cohort_1",
+      name: "Deep Tech Scaling",
+      suggestedMentors: ["m1", "m4"],
+      suggestedCompanies: ["c6", "c8"],
       suggestedPartners: ["p_1"],
       suggestedProviders: ["sp_1"],
       logic: "Focusing on deep-tech startups needing Cloud infrastructure (p1) and IP protection (sp1).",
+      status: "PENDING"
+    },
+    {
+      id: "cohort_2",
+      name: "AI Ethics & Governance",
+      suggestedMentors: ["m2", "m3"],
+      suggestedCompanies: ["c4", "c1"],
+      suggestedPartners: ["p_2"],
+      suggestedProviders: ["sp_3"],
+      logic: "Aligning super-apps and fintechs with advanced AI safety frameworks and solutions architect oversight.",
+      status: "PENDING"
+    },
+    {
+      id: "cohort_3",
+      name: "Retail Automation Hub",
+      suggestedMentors: ["m5", "m1"],
+      suggestedCompanies: ["c7", "c5"],
+      suggestedPartners: ["p_1", "p_2"],
+      suggestedProviders: ["sp_2"],
+      logic: "Driving digital transformation in retail via growth hacking and UI/UX specialization.",
       status: "PENDING"
     }
   ];
 
   const programs = [
     { id: "pg_1", name: "Global Scaleup 2026", type: "PROGRAMME", status: "ONGOING", startDate: "2026-01-01", description: "For companies expanding to SEA." },
-    { id: "pg_2", name: "TechFounders EU", type: "PROGRAMME", status: "REGISTERING", startDate: "2026-07-15", description: "Connecting EU talent with global investors." },
+    { id: "pg_2", name: "TechFounders EU", type: "PROGRAMME", status: "REGISTERING", startDate: "2027-07-15", description: "Connecting EU talent with global investors." },
     { id: "pg_3", name: "AI Innovation Lab", type: "PROGRAMME", status: "COMPLETED", startDate: "2025-06-01", description: "Pioneering LLM integration for enterprise." }
+  ];
+
+  const analystInsights = [
+    { id: "i1", title: "Compliance Trend", insight: "Significant improvement in SSM verification across Fintech sector (+22%).", impact: "HIGH" },
+    { id: "i2", title: "Scale-up Velocity", insight: "Carsome and Aerodyne showing 15% higher ecosystem vitality than average.", impact: "MEDIUM" },
+    { id: "i3", title: "Risk Alert", insight: "LHDN audit delays detected in 'SaaS / Retail' segment. Action required.", impact: "CRITICAL" },
+    { id: "i4", title: "Mentor Performance", insight: "Top 5 mentors showing 92% average satisfaction across linkage sessions.", impact: "HIGH" }
   ];
 
   // Programmable Linkages
@@ -342,7 +369,7 @@ async function startServer() {
   // API Routes
   app.get("/api/mentors", (req, res) => res.json(mentors));
   app.get("/api/resources", (req, res) => res.json(resources));
-  app.get("/api/ecosystem", (req, res) => res.json({ mentors, companies, partners, serviceProviders, programs, linkages, proposals }));
+  app.get("/api/ecosystem", (req, res) => res.json({ mentors, companies, partners, serviceProviders, programs, linkages, proposals, analystInsights }));
 
   app.post("/api/chat", async (req, res) => {
     try {
@@ -376,7 +403,7 @@ async function startServer() {
         model,
         contents: [{ role: 'user', parts: [{ text: message }] }],
         config: {
-          systemInstruction: `You are the ZenBuild Ecosystem Coordinator Agent.
+          systemInstruction: `You are the Syncra Ecosystem Coordinator Agent.
           You manage "Linkages" - programmable relationships between actors (Mentors, Companies, Partners).
           
           Context:
@@ -388,6 +415,7 @@ async function startServer() {
           Your goal is to:
           - Propose new linkages based on entity "Needs" and "Expertise".
           - automate coordination by checking mentor "Load".
+          - When a user wants to "Apply" for a program, provide a high-end summary of the automated documentation process: Mention "Regulatory Proof Units", "Cradle Compliance Check", and "Linkage Channel Initialization".
           - Explain the logic behind reusable relationship entities.
           - Keep answers concise, high-end, and technical.`,
           tools: [{ googleSearch: {} }]
