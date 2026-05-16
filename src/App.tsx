@@ -157,6 +157,23 @@ export default function App() {
   ]);
   const [activeAgentTab, setActiveAgentTab] = useState<'AI_AGENT' | 'DIRECT_LINKAGE'>('AI_AGENT');
   const [inputMessage, setInputMessage] = useState('');
+  const [nodeMatches, setNodeMatches] = useState<any[]>([]);
+
+  const handleInputChange = (val: string) => {
+    setInputMessage(val);
+    if (val.length > 1) {
+      const allNodes = [...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders];
+      const matches = allNodes.filter(n => n.name.toLowerCase().includes(val.toLowerCase())).slice(0, 3);
+      setNodeMatches(matches);
+    } else {
+      setNodeMatches([]);
+    }
+  };
+
+  const selectNodeMatch = (name: string) => {
+    setInputMessage(`@${name} `);
+    setNodeMatches([]);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1349,7 +1366,7 @@ export default function App() {
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                exit={{ opacity: 0 }}
-               className="max-w-4xl mx-auto h-[calc(100vh-180px)] flex flex-col px-4"
+               className="max-w-7xl mx-auto h-[calc(100vh-64px)] flex flex-col px-4 w-full"
             >
                <div className="text-center mb-6 pt-2 flex flex-col items-center shrink-0">
                   <motion.div 
@@ -1361,7 +1378,7 @@ export default function App() {
                     <SyncraLogo size={36} />
                     <div className="absolute -inset-1.5 bg-brand-yellow/5 rounded-[1.8rem] animate-pulse -z-10" />
                   </motion.div>
-                  <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-brand-dark leading-tight">Ecosystem Intelligence</h1>
+                  <h1 className="text-3xl font-extrabold tracking-tighter mb-2 text-brand-dark leading-tight">Syncra Nexus</h1>
                   
                   <div className="flex bg-brand-bg/50 p-1 rounded-2xl mt-2 border border-brand-bg">
                     <button 
@@ -1369,21 +1386,21 @@ export default function App() {
                       className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${activeAgentTab === 'AI_AGENT' ? 'bg-brand-dark text-brand-yellow shadow-lg' : 'text-brand-dark/40 hover:text-brand-dark'}`}
                     >
                       <Sparkles size={12} />
-                      Synthetic Analyst
+                      Syncra Intelligence
                     </button>
                     <button 
                       onClick={() => setActiveAgentTab('DIRECT_LINKAGE')}
                       className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${activeAgentTab === 'DIRECT_LINKAGE' ? 'bg-brand-dark text-brand-yellow shadow-lg' : 'text-brand-dark/40 hover:text-brand-dark'}`}
                     >
-                      <Handshake size={12} />
-                      Linkage Channel
+                      <MessageSquare size={12} />
+                      Ecosystem Connect
                     </button>
                   </div>
                </div>
 
                <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl shadow-brand-dark/5 flex flex-col overflow-hidden mb-6 border border-brand-bg min-h-0">
                   <ScrollArea className="flex-1 scroll-smooth">
-                    <div className="max-w-3xl mx-auto p-8">
+                    <div className="max-w-5xl mx-auto p-10">
                        {(() => {
                          const currentChat = activeAgentTab === 'AI_AGENT' ? agentChat : adminFounderChat;
                          
@@ -1405,6 +1422,39 @@ export default function App() {
 
                          return (
                            <div className="space-y-6 py-2">
+                             {activeAgentTab === 'DIRECT_LINKAGE' && (
+                               <div className="flex flex-col gap-5 mb-10 p-5 bg-[#F8F9FA] rounded-[2rem] border border-brand-bg">
+                                 <div className="flex items-center justify-between px-2">
+                                   <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-brand-dark rounded-xl flex items-center justify-center text-brand-yellow">
+                                        <Users size={20} />
+                                      </div>
+                                      <div>
+                                        <h3 className="font-bold text-sm tracking-tight">Active Linkage Hub</h3>
+                                        <p className="text-[10px] font-medium text-brand-dark/40 uppercase tracking-widest">Connect with any ecosystem node</p>
+                                      </div>
+                                   </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                      <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Network Live</span>
+                                    </div>
+                                 </div>
+                                 
+                                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none px-2">
+                                    {[...ecosystem.mentors, ...ecosystem.partners, ...ecosystem.serviceProviders].map(node => (
+                                      <button 
+                                        key={node.id}
+                                        className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-brand-bg hover:border-brand-yellow active:scale-95 transition-all group shadow-sm"
+                                      >
+                                        <Avatar className="w-5 h-5">
+                                          <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
+                                        </Avatar>
+                                        <span className="text-[10px] font-bold text-brand-dark/60 group-hover:text-brand-dark whitespace-nowrap">{node.name}</span>
+                                      </button>
+                                    ))}
+                                 </div>
+                               </div>
+                             )}
                              {currentChat.map((msg, i) => {
                                const isBot = msg.role === 'bot';
                                let sender = '';
@@ -1412,11 +1462,7 @@ export default function App() {
                                if (activeAgentTab === 'AI_AGENT') {
                                  sender = isBot ? 'Syncra IQ Core' : 'Authorized Admin';
                                } else {
-                                 if (role === 'ADMIN') {
-                                   sender = isBot ? 'Venture Node' : 'HQ Command';
-                                 } else {
-                                   sender = isBot ? 'HQ Command' : 'Venture Node';
-                                 }
+                                 sender = isBot ? 'Ecosystem Node' : (role === 'ADMIN' ? 'Syncra HQ' : 'Founder Hub');
                                }
 
                                return (
@@ -1449,13 +1495,37 @@ export default function App() {
                     </div>
                   </ScrollArea>
 
-                  <div className="p-6 border-t border-brand-bg bg-white shadow-[0_-5px_30px_-15px_rgba(0,0,0,0.03)]">
-                    <div className="relative max-w-2xl mx-auto">
+                  <div className="p-8 border-t border-brand-bg bg-white shadow-[0_-5px_30px_-15px_rgba(0,0,0,0.03)]">
+                    <div className="relative max-w-4xl mx-auto">
+                      {nodeMatches.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute bottom-full left-0 mb-4 bg-white border border-brand-bg rounded-2xl shadow-2xl p-2 flex flex-col w-64 z-[100]"
+                        >
+                          <p className="text-[9px] font-bold text-brand-dark/30 uppercase tracking-[0.2em] px-3 py-2 border-b border-brand-bg mb-1">Ecosystem Discovery</p>
+                          {nodeMatches.map(node => (
+                            <button 
+                              key={node.id}
+                              onClick={() => selectNodeMatch(node.name)}
+                              className="flex items-center gap-3 px-3 py-2.5 hover:bg-brand-bg rounded-xl transition-all text-left group"
+                            >
+                              <Avatar className="w-8 h-8 border border-brand-bg">
+                                <AvatarImage src={`https://api.dicebear.com/7.x/identicon/svg?seed=${node.id}`} />
+                              </Avatar>
+                              <div>
+                                <p className="text-xs font-bold text-brand-dark group-hover:text-brand-yellow transition-colors">{node.name}</p>
+                                <p className="text-[9px] font-medium text-brand-dark/40 uppercase tracking-tighter">Verified Node</p>
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
                       <Input 
                         placeholder="Inquire with ecosystem IQ..." 
-                        className="pr-16 h-14 rounded-full bg-brand-bg/40 border-none px-7 text-sm font-bold tracking-tight shadow-inner placeholder:text-brand-dark/20 focus-visible:ring-brand-yellow/20"
+                        className="pr-16 h-16 rounded-[1.8rem] bg-brand-bg/40 border-none px-8 text-base font-bold tracking-tight shadow-inner placeholder:text-brand-dark/20 focus-visible:ring-brand-yellow/20"
                         value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
+                        onChange={(e) => handleInputChange(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                       />
                       <Button 
