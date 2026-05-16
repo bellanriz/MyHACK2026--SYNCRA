@@ -1,0 +1,8 @@
+{
+  "name": "ZenBuild",
+  "description": "Programmable ecosystem coordinator for Cradle, featuring AI-assisted program assembly, linkage tracking, and service provider activity auditing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
